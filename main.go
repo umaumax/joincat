@@ -7,14 +7,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 )
 
 var (
+	width      int
 	numberFlag bool
 	delimChar  string
 )
 
 func init() {
+	flag.IntVar(&width, "w", -1, "width")
 	flag.BoolVar(&numberFlag, "n", false, "line number flag")
 	flag.StringVar(&delimChar, "d", "|", "delim char")
 }
@@ -40,25 +43,32 @@ func main() {
 	}
 	w := &bytes.Buffer{}
 	for nr := 1; ; nr++ {
+		line_buffer := &bytes.Buffer{}
 		if numberFlag {
-			fmt.Fprintf(w, "%4d ", nr)
+			fmt.Fprintf(line_buffer, "%4d ", nr)
 		}
 		eofCnt := 0
 		for i, scanner := range scanners {
+			text := ""
 			if scanner.Scan() {
-				text := scanner.Text()
-				if i > 0 {
-					fmt.Fprintf(w, delimChar)
-				}
-				fmt.Fprintf(w, "%s", text)
+				text = scanner.Text()
 			} else {
 				eofCnt++
 			}
+			if i > 0 {
+				fmt.Fprintf(line_buffer, delimChar)
+			}
+			if width < 0 {
+				fmt.Fprintf(line_buffer, "%s", text)
+			} else {
+				fmt.Fprintf(line_buffer, "%"+strconv.Itoa(width)+"s", text)
+			}
 		}
-		fmt.Fprintln(w)
+		fmt.Fprintln(line_buffer)
 		if eofCnt == len(scanners) {
 			break
 		}
+		fmt.Fprintf(w, "%s", line_buffer.String())
 	}
 	fmt.Printf("%s", w.String())
 }
